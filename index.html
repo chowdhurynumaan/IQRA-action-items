@@ -3,507 +3,500 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Meeting Notes</title> <!-- Title in browser tab -->
+    <title>Meeting Notes App</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- jsPDF CDN for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6; /* Light gray background */
         }
         /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
+        .note-list-container::-webkit-scrollbar {
             width: 8px;
         }
-        ::-webkit-scrollbar-track {
+        .note-list-container::-webkit-scrollbar-track {
             background: #e0e0e0;
             border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
+        .note-list-container::-webkit-scrollbar-thumb {
+            background: #9ca3af;
             border-radius: 10px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        .note-list-container::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
-        /* Style for the Add Topic button */
-        .add-topic-button {
-            background-color: #4f46e5; /* Indigo 600 */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
+        /* Hide default number input arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
-        .add-topic-button:hover {
-            background-color: #4338ca; /* Indigo 700 */
-            transform: translateY(-1px);
-        }
-        .add-topic-button:active {
-            background-color: #3730a3; /* Indigo 800 */
-            transform: translateY(0);
-        }
-        /* Style for the Delete Topic button */
-        .delete-topic-button {
-            background-color: #ef4444; /* Red 500 */
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 500; /* font-medium */
-            transition: background-color 0.2s ease-in-out;
-            margin-left: auto; /* Pushes button to the right */
-        }
-        .delete-topic-button:hover {
-            background-color: #dc2626; /* Red 600 */
-        }
-        .delete-topic-button:active {
-            background-color: #b91c1c; /* Red 700 */
-        }
-        /* Style for the Delete Action Item button */
-        .delete-action-item-button {
-            background-color: #ef4444; /* Red 500 */
-            color: white;
-            padding: 0.1rem 0.3rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem; /* text-xs */
-            font-weight: 500; /* font-medium */
-            transition: background-color 0.2s ease-in-out;
-            margin-left: 0.5rem; /* Space from input field */
-            flex-shrink: 0; /* Prevent shrinking */
-        }
-        .delete-action-item-button:hover {
-            background-color: #dc2626; /* Red 600 */
-        }
-        .delete-action-item-button:active {
-            background-color: #b91c1c; /* Red 700 */
-        }
-        /* Style for the Generate PDF button */
-        .generate-pdf-button {
-            background-color: #10b981; /* Emerald 500 */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        .generate-pdf-button:hover {
-            background-color: #059669; /* Emerald 600 */
-            transform: translateY(-1px);
-        }
-        .generate-pdf-button:active {
-            background-color: #047857; /* Emerald 700 */
-            transform: translateY(0);
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
-<body class="antialiased text-gray-800">
-    <div class="min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8">
-        <!-- Main Container for the Meeting Notes -->
-        <div id="meeting-notes-container" class="bg-white shadow-xl rounded-lg p-6 sm:p-8 lg:p-10 w-full max-w-4xl">
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 w-full max-w-2xl flex flex-col gap-6 border border-gray-200">
+        <!-- Header Section -->
+        <div class="flex flex-col items-center justify-center text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Meeting Notes</h1>
+            <p class="text-gray-600 text-lg">Capture your thoughts and action items efficiently.</p>
+            <p id="user-id-display" class="text-sm text-gray-500 mt-2 bg-gray-100 p-2 rounded-md shadow-inner">User ID: Loading...</p>
+        </div>
 
-            <!-- Meeting Header -->
-            <header class="mb-8 pb-4 border-b border-gray-200">
-                <h1 class="text-3xl sm:text-4xl font-bold text-indigo-700 mb-2">Meeting Notes</h1>
-                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center text-gray-600 text-sm sm:text-base">
-                    <p class="mb-1 sm:mb-0"><strong>Date:</strong> <span id="meeting-date"></span></p>
-                    <p><strong>Time:</strong> <span id="meeting-time"></span></p>
-                </div>
-                <p class="text-gray-600 text-sm sm:text-base mt-2"><strong>Attendees:</strong> <input type="text" id="meeting-attendees" placeholder="Add attendees names (e.g., John Doe, Jane Smith)..." class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"></p>
-                <p class="text-gray-600 text-sm sm:text-base mt-2"><strong>Meeting Title:</strong> <input type="text" id="meeting-title-input" placeholder="Enter meeting title (e.g., Weekly Sync, Project Review)..." class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"></p>
-            </header>
+        <!-- Note Input Form -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Add New Note</h2>
+            <form id="note-form" class="flex flex-col gap-4">
+                <input
+                    type="text"
+                    id="note-title"
+                    placeholder="Meeting Title (e.g., Project X Sync)"
+                    class="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                    required
+                />
 
-            <!-- Meeting Content Section -->
-            <section id="meeting-content">
-                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Discussion Topics</h2>
-
-                <!-- Topic 1 Details - This will be cloned for new topics -->
-                <div class="topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
-                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
-                        <span class="topic-number mr-2">1.</span>
-                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., Project Alpha Update)">
-                        <!-- Delete button is hidden for the first topic -->
-                        <button type="button" class="delete-topic-button ml-auto hidden">Delete Topic</button>
-                    </h3>
-
-                    <!-- Points Discussed -->
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
-                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
-                    </div>
-
-                    <!-- Action Items -->
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
-                        <ul class="action-items-list list-disc list-inside space-y-2">
-                            <li class="flex items-start">
-                                <span class="mr-2 text-indigo-600">&#8226;</span>
-                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
-                                <button type="button" class="delete-action-item-button">X</button>
-                            </li>
-                            <li class="flex items-start">
-                                <span class="mr-2 text-indigo-600">&#8226;</span>
-                                <textarea placeholder="Action: Describe another action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                                <input type="text" placeholder="Responsible: Jane Smith" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
-                                <button type="button" class="delete-action-item-button">X</button>
-                            </li>
-                            <!-- More action items can be added here or dynamically -->
-                        </ul>
-                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            + Add Action Item
-                        </button>
-                    </div>
-
-                    <!-- Comments -->
-                    <div>
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
-                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
-                    </div>
+                <!-- Agenda Topics Container -->
+                <div id="agenda-topics-container" class="flex flex-col gap-4">
+                    <!-- Initial topic will be added by JS -->
                 </div>
 
-                <!-- Initial placeholder for more topics -->
-                <div class="topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
-                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
-                        <span class="topic-number mr-2">2.</span>
-                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., Q2 Performance Review)">
-                        <button type="button" class="delete-topic-button ml-auto">Delete Topic</button>
-                    </h3>
-
-                    <!-- Points Discussed -->
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
-                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
-                    </div>
-
-                    <!-- Action Items -->
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
-                        <ul class="action-items-list list-disc list-inside space-y-2">
-                            <li class="flex items-start">
-                                <span class="mr-2 text-indigo-600">&#8226;</span>
-                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
-                                <button type="button" class="delete-action-item-button">X</button>
-                            </li>
-                        </ul>
-                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            + Add Action Item
-                        </button>
-                    </div>
-
-                    <!-- Comments -->
-                    <div>
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
-                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
-                    </div>
-                </div>
-
-            </section>
-
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap justify-center gap-4 mt-8">
-                <button type="button" id="add-new-topic-button" class="add-topic-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Add New Topic
+                <button
+                    type="button"
+                    id="add-topic-btn"
+                    class="bg-green-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-200 shadow-md"
+                >
+                    Add Agenda Topic
                 </button>
-                <button type="button" id="generate-pdf-button" class="generate-pdf-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M5 4a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H5zm0 2h10v6H5V6zm4 2a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" />
-                    </svg>
-                    Generate PDF
+
+                <button
+                    type="submit"
+                    class="bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 shadow-md"
+                >
+                    Save Meeting Note
                 </button>
+            </form>
+        </div>
+
+        <!-- Notes List Section -->
+        <div class="bg-gray-50 p-5 rounded-lg shadow-sm border border-gray-100">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Your Notes</h2>
+            <div id="notes-list" class="flex flex-col gap-4 note-list-container max-h-96 overflow-y-auto pr-2">
+                <!-- Notes will be dynamically loaded here -->
+                <p class="text-gray-500 text-center" id="loading-message">Loading notes...</p>
             </div>
-
+            <p id="no-notes-message" class="text-gray-500 text-center mt-4 hidden">No notes yet. Add your first note above!</p>
         </div>
     </div>
 
-    <script>
-        // Ensure jsPDF is loaded
-        const { jsPDF } = window.jspdf;
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Set current date and time dynamically
-            const now = new Date();
-            const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
-            const optionsTime = { hour: 'numeric', minute: 'numeric', hour12: true };
-            document.getElementById('meeting-date').textContent = now.toLocaleDateString('en-US', optionsDate);
-            document.getElementById('meeting-time').textContent = now.toLocaleTimeString('en-US', optionsTime);
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAjGzS58U5ybbI5CYJUk2NRZBuLJnMJihQ",
+            authDomain: "apps-e1163.firebaseapp.com",
+            projectId: "apps-e1163",
+            storageBucket: "apps-e1163.firebasestorage.app",
+            messagingSenderId: "855206153422",
+            appId: "1:855206153422:web:2a1366b2e7825304c3d49f",
+            measurementId: "G-7YCKESJB8T"
+        };
 
-            const meetingNotesContainer = document.getElementById('meeting-notes-container');
-            const meetingContent = document.getElementById('meeting-content');
-            const addNewTopicButton = document.getElementById('add-new-topic-button');
-            const generatePdfButton = document.getElementById('generate-pdf-button');
+        // Use the appId from your firebaseConfig directly
+        const appId = firebaseConfig.appId;
 
-            // Function to update topic numbers
-            function updateTopicNumbers() {
-                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
-                topicBlocks.forEach((block, index) => {
-                    block.querySelector('.topic-number').textContent = `${index + 1}.`;
-                    // Hide delete button for the first topic, show for others
-                    const deleteButton = block.querySelector('.delete-topic-button');
-                    if (deleteButton) {
-                        if (index === 0) {
-                            deleteButton.classList.add('hidden');
-                        } else {
-                            deleteButton.classList.remove('hidden');
-                        }
-                    }
-                });
-            }
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-            // Function to delete an action item
-            function deleteActionItem(button) {
-                const actionItemLi = button.closest('li');
-                actionItemLi.remove();
-            }
+        let userId = null; // To store the current user's ID
+        let isAuthReady = false; // Flag to ensure Firestore operations wait for auth
 
-            // Function to add a new action item to a specific topic
-            function addActionItem(button) {
-                const ul = button.previousElementSibling; // Get the <ul> element before the button
-                const newActionItem = document.createElement('li');
-                newActionItem.className = 'flex items-start';
-                newActionItem.innerHTML = `
-                    <span class="mr-2 text-indigo-600">&#8226;</span>
-                    <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                    <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
-                    <button type="button" class="delete-action-item-button">X</button>
-                `;
-                ul.appendChild(newActionItem);
-                // Attach event listener to the new delete action item button
-                newActionItem.querySelector('.delete-action-item-button').addEventListener('click', (event) => deleteActionItem(event.target));
-            }
+        const noteForm = document.getElementById('note-form');
+        const noteTitleInput = document.getElementById('note-title');
+        const agendaTopicsContainer = document.getElementById('agenda-topics-container');
+        const addTopicBtn = document.getElementById('add-topic-btn');
+        const notesListDiv = document.getElementById('notes-list');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const loadingMessage = document.getElementById('loading-message');
+        const noNotesMessage = document.getElementById('no-notes-message');
 
-            // Function to delete a topic block
-            function deleteTopic(button) {
-                const topicBlock = button.closest('.topic-block');
-                // Ensure we don't delete the last remaining topic
-                if (meetingContent.querySelectorAll('.topic-block').length > 1) {
-                    topicBlock.remove();
-                    updateTopicNumbers(); // Re-number topics after deletion
-                } else {
-                    // Optionally, provide feedback to the user that the first topic cannot be deleted
-                    console.log("Cannot delete the last remaining topic.");
-                    // You could add a simple visual cue here if needed, e.g., a temporary border color change
+        // Authenticate user and set up Firestore listener
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userIdDisplay.textContent = `User ID: ${userId}`;
+                isAuthReady = true;
+                console.log("Authenticated user:", userId);
+                // Once authenticated, start listening for notes
+                listenForNotes();
+            } else {
+                // If no user, sign in anonymously for public access
+                try {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                } catch (error) {
+                    console.error("Authentication error:", error);
+                    userIdDisplay.textContent = `User ID: Error (${error.message})`;
                 }
             }
+        });
 
-            // Function to generate PDF with extracted text
-            async function generatePdf() {
-                const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size
-                const margin = 20; // Page margin
-                let y = margin; // Current Y position on the PDF
+        // Function to add a new agenda topic section to the form
+        function addTopicSection(initialTopicTitle = '', initialMainPoints = '', initialActionItems = []) {
+            const topicIndex = agendaTopicsContainer.children.length; // Use current number of children as index
 
-                // Function to add text with line wrapping
-                const addText = (text, x, yPos, maxWidth, fontSize, fontStyle = 'normal') => {
-                    doc.setFont('helvetica', fontStyle);
-                    doc.setFontSize(fontSize);
-                    const splitText = doc.splitTextToSize(text, maxWidth);
-                    doc.text(splitText, x, yPos);
-                    return yPos + (splitText.length * fontSize * 0.35); // Adjust line height multiplier as needed
-                };
+            const topicDiv = document.createElement('div');
+            topicDiv.className = 'bg-white p-4 rounded-lg shadow-inner border border-gray-200 relative';
+            topicDiv.innerHTML = `
+                <h3 class="text-md font-semibold text-gray-700 mb-3">Agenda Topic ${topicIndex + 1}</h3>
+                <input
+                    type="text"
+                    placeholder="Topic Title (e.g., Q3 Performance Review)"
+                    class="topic-title-input p-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-400 transition duration-200 mb-3"
+                    value="${initialTopicTitle}"
+                    required
+                />
+                <textarea
+                    placeholder="Main points discussed..."
+                    rows="3"
+                    class="main-points-input p-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-blue-400 transition duration-200 mb-3 resize-y"
+                    required
+                >${initialMainPoints}</textarea>
 
-                // Helper to check for new page
-                const checkNewPage = (requiredHeight) => {
-                    if (y + requiredHeight > doc.internal.pageSize.height - margin) {
-                        doc.addPage();
-                        y = margin;
-                    }
-                };
+                <div class="action-items-container flex flex-col gap-2 mb-3">
+                    <h4 class="text-sm font-medium text-gray-600">Action Items:</h4>
+                    <!-- Action items will be added here -->
+                </div>
+                <button
+                    type="button"
+                    class="add-action-item-btn bg-blue-500 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-400 transition duration-200"
+                >
+                    Add Action Item
+                </button>
+                ${topicIndex > 0 ? `
+                <button
+                    type="button"
+                    class="remove-topic-btn absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none transition duration-200"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                ` : ''}
+            `;
+            agendaTopicsContainer.appendChild(topicDiv);
 
-                // --- Extract Meeting Details ---
-                const meetingTitle = document.getElementById('meeting-title-input').value.trim();
-                const meetingDate = document.getElementById('meeting-date').textContent;
-                const meetingTime = document.getElementById('meeting-time').textContent;
-                const meetingAttendees = document.getElementById('meeting-attendees').value.trim();
+            const actionItemsContainer = topicDiv.querySelector('.action-items-container');
+            const addActionItemBtn = topicDiv.querySelector('.add-action-item-btn');
 
-                // --- Add Meeting Header to PDF ---
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(24);
-                doc.text('Meeting Minutes', margin, y);
-                y += 15;
+            // Add existing action items if provided (for loading notes)
+            initialActionItems.forEach(item => {
+                addActionItemField(actionItemsContainer, item.description, item.responsible);
+            });
 
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(12);
-                y = addText(`Title: ${meetingTitle || 'N/A'}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
-                y = addText(`Date: ${meetingDate}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
-                y = addText(`Time: ${meetingTime}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
-                y = addText(`Attendees: ${meetingAttendees || 'N/A'}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
-                y += 15; // Space after header
+            // Add listener for adding action items within this topic
+            addActionItemBtn.addEventListener('click', () => {
+                addActionItemField(actionItemsContainer);
+            });
 
-                // --- Add Discussion Topics ---
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(16);
-                doc.text('Discussion Topics', margin, y);
-                y += 10;
+            // Add listener for removing topic
+            const removeTopicBtn = topicDiv.querySelector('.remove-topic-btn');
+            if (removeTopicBtn) {
+                removeTopicBtn.addEventListener('click', () => {
+                    topicDiv.remove();
+                    // Re-index topic titles after removal
+                    updateTopicTitles();
+                });
+            }
+        }
 
-                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
-                topicBlocks.forEach((block, index) => {
-                    checkNewPage(50); // Estimate space for a new topic heading and some content
-
-                    const topicTitle = block.querySelector('.topic-title-input').value.trim();
-                    const pointsDiscussed = block.querySelector('.points-discussed-textarea').value.trim();
-                    const actionItems = [];
-                    block.querySelectorAll('.action-items-list li').forEach(li => {
-                        const action = li.querySelector('.action-item-text').value.trim();
-                        const responsible = li.querySelector('.action-item-responsible').value.trim();
-                        if (action || responsible) {
-                            actionItems.push({ action, responsible });
-                        }
+        // Function to update topic titles (e.g., Agenda Topic 1, Agenda Topic 2)
+        function updateTopicTitles() {
+            const topicDivs = agendaTopicsContainer.querySelectorAll('.bg-white.p-4.rounded-lg.shadow-inner');
+            topicDivs.forEach((topicDiv, index) => {
+                const h3 = topicDiv.querySelector('h3');
+                if (h3) {
+                    h3.textContent = `Agenda Topic ${index + 1}`;
+                }
+                const removeBtn = topicDiv.querySelector('.remove-topic-btn');
+                if (index === 0 && removeBtn) {
+                    removeBtn.remove(); // Remove delete button for the first topic
+                } else if (index > 0 && !removeBtn) {
+                    // Re-add delete button if it was removed and now it's not the first
+                    const newRemoveBtn = document.createElement('button');
+                    newRemoveBtn.type = 'button';
+                    newRemoveBtn.className = 'remove-topic-btn absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none transition duration-200';
+                    newRemoveBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    `;
+                    topicDiv.appendChild(newRemoveBtn);
+                    newRemoveBtn.addEventListener('click', () => {
+                        topicDiv.remove();
+                        updateTopicTitles();
                     });
-                    const comments = block.querySelector('.comments-textarea').value.trim();
+                }
+            });
+        }
 
-                    // Topic Title
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(14);
-                    y = addText(`${index + 1}. ${topicTitle || 'Untitled Topic'}`, margin + 5, y, doc.internal.pageSize.width - 2 * margin - 5, 14);
-                    y += 5; // Space after topic title
 
-                    // Points Discussed
-                    if (pointsDiscussed) {
-                        checkNewPage(30); // Estimate space for heading and content
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(12);
-                        doc.text('Points Discussed:', margin + 10, y);
-                        y += 5;
-                        y = addText(pointsDiscussed, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
-                        y += 5;
+        // Function to add an action item field to a specific container
+        function addActionItemField(container, initialDescription = '', initialResponsible = '') {
+            const actionItemDiv = document.createElement('div');
+            actionItemDiv.className = 'flex gap-2 items-center';
+            actionItemDiv.innerHTML = `
+                <input
+                    type="text"
+                    placeholder="Action item description"
+                    class="action-description-input p-2 border border-gray-300 rounded-md w-3/5 focus:outline-none focus:ring-1 focus:ring-blue-400 transition duration-200"
+                    value="${initialDescription}"
+                    required
+                />
+                <input
+                    type="text"
+                    placeholder="Responsible (e.g., John Doe)"
+                    class="action-responsible-input p-2 border border-gray-300 rounded-md w-2/5 focus:outline-none focus:ring-1 focus:ring-blue-400 transition duration-200"
+                    value="${initialResponsible}"
+                    required
+                />
+                <button
+                    type="button"
+                    class="remove-action-item-btn text-red-500 hover:text-red-700 focus:outline-none transition duration-200"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            `;
+            container.appendChild(actionItemDiv);
+
+            // Add listener for removing action item
+            actionItemDiv.querySelector('.remove-action-item-btn').addEventListener('click', () => {
+                actionItemDiv.remove();
+            });
+        }
+
+        // Add initial topic section when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            addTopicSection();
+        });
+
+        // Add new topic section when button is clicked
+        addTopicBtn.addEventListener('click', () => {
+            addTopicSection();
+            updateTopicTitles(); // Update titles after adding
+        });
+
+        // Function to add a new note
+        noteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAuthReady) {
+                console.warn("Authentication not ready. Cannot add note.");
+                return;
+            }
+
+            const meetingTitle = noteTitleInput.value.trim();
+            if (!meetingTitle) {
+                console.warn("Please enter a meeting title.");
+                return;
+            }
+
+            const topics = [];
+            const topicDivs = agendaTopicsContainer.querySelectorAll('.bg-white.p-4.rounded-lg.shadow-inner');
+
+            topicDivs.forEach(topicDiv => {
+                const topicTitle = topicDiv.querySelector('.topic-title-input').value.trim();
+                const mainPoints = topicDiv.querySelector('.main-points-input').value.trim();
+                const actionItems = [];
+
+                const actionItemDivs = topicDiv.querySelectorAll('.action-items-container > div');
+                actionItemDivs.forEach(actionItemDiv => {
+                    const description = actionItemDiv.querySelector('.action-description-input').value.trim();
+                    const responsible = actionItemDiv.querySelector('.action-responsible-input').value.trim();
+                    if (description && responsible) {
+                        actionItems.push({ description, responsible });
                     }
-
-                    // Action Items
-                    if (actionItems.length > 0) {
-                        checkNewPage(20 + (actionItems.length * 10)); // Estimate space for heading and items
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(12);
-                        doc.text('Action Items:', margin + 10, y);
-                        y += 5;
-                        actionItems.forEach(item => {
-                            const actionText = `- ${item.action || 'N/A'}`;
-                            const responsibleText = item.responsible ? ` (Responsible: ${item.responsible})` : '';
-                            y = addText(actionText + responsibleText, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
-                            y += 5;
-                        });
-                        y += 5;
-                    }
-
-                    // Comments
-                    if (comments) {
-                        checkNewPage(30); // Estimate space for heading and content
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(12);
-                        doc.text('Comments:', margin + 10, y);
-                        y += 5;
-                        y = addText(comments, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
-                        y += 5;
-                    }
-                    y += 10; // Space after each topic
                 });
 
-                const fileName = (meetingTitle.trim() !== '')
-                    ? `${meetingTitle.trim().replace(/[^a-z0-9]/gi, '_')}_Meeting_Minutes.pdf`
-                    : 'Meeting_Minutes.pdf';
+                if (topicTitle || mainPoints || actionItems.length > 0) { // Only add topic if it has content
+                    topics.push({ topicTitle, mainPoints, actionItems });
+                }
+            });
 
-                doc.save(fileName);
+            if (topics.length === 0) {
+                console.warn("Please add at least one agenda topic with content.");
+                return;
             }
 
+            try {
+                // Store notes in a public collection for this app ID
+                const notesCollectionRef = collection(db, `artifacts/${appId}/public/data/notes`);
+                await addDoc(notesCollectionRef, {
+                    title: meetingTitle,
+                    topics: topics, // Store the array of topics
+                    createdAt: Date.now(), // Timestamp for ordering
+                    userId: userId // Associate note with the current user
+                });
+                noteTitleInput.value = '';
+                agendaTopicsContainer.innerHTML = ''; // Clear topics
+                addTopicSection(); // Add back one empty topic
+                console.log("Note added successfully!");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            }
+        });
 
-            // Attach event listeners to initial "Add Action Item" buttons
-            document.querySelectorAll('.add-action-item-button').forEach(button => {
-                button.addEventListener('click', () => addActionItem(button));
+        // Function to listen for real-time updates to notes
+        function listenForNotes() {
+            if (!isAuthReady) {
+                console.warn("Authentication not ready. Cannot listen for notes.");
+                return;
+            }
+
+            // Query notes from the public collection, ordered by creation time
+            const notesCollectionRef = collection(db, `artifacts/${appId}/public/data/notes`);
+            // Note: orderBy is commented out due to potential index issues as per instructions.
+            // Data will be sorted in client-side.
+            const q = query(notesCollectionRef /*, orderBy('createdAt', 'desc')*/);
+
+            onSnapshot(q, (snapshot) => {
+                const notes = [];
+                snapshot.forEach((doc) => {
+                    notes.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort notes by createdAt in descending order (newest first)
+                notes.sort((a, b) => b.createdAt - a.createdAt);
+
+                displayNotes(notes);
+            }, (error) => {
+                console.error("Error listening to notes:", error);
+                notesListDiv.innerHTML = `<p class="text-red-500 text-center">Error loading notes: ${error.message}</p>`;
             });
+        }
 
-            // Attach event listeners to initial "Delete Topic" buttons (only for those that are not hidden)
-            document.querySelectorAll('.delete-topic-button:not(.hidden)').forEach(button => {
-                button.addEventListener('click', () => deleteTopic(button));
-            });
+        // Function to display notes in the UI
+        function displayNotes(notes) {
+            notesListDiv.innerHTML = ''; // Clear existing notes
+            loadingMessage.classList.add('hidden'); // Hide loading message
 
-            // Attach event listeners to existing "Delete Action Item" buttons
-            document.querySelectorAll('.delete-action-item-button').forEach(button => {
-                button.addEventListener('click', (event) => deleteActionItem(event.target));
-            });
+            if (notes.length === 0) {
+                noNotesMessage.classList.remove('hidden');
+                return;
+            } else {
+                noNotesMessage.classList.add('hidden');
+            }
 
-            // Function to add a new topic block
-            function addNewTopic() {
-                // Get the last topic number
-                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
-                const lastTopicNumber = topicBlocks.length > 0
-                    ? parseInt(topicBlocks[topicBlocks.length - 1].querySelector('.topic-number').textContent.split('.')[0])
-                    : 0;
-                const newTopicNumber = lastTopicNumber + 1;
+            notes.forEach(note => {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col gap-2 relative';
 
-                const newTopicBlock = document.createElement('div');
-                newTopicBlock.className = 'topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200';
-                newTopicBlock.innerHTML = `
-                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
-                        <span class="topic-number mr-2">${newTopicNumber}.</span>
-                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., New Initiative Brainstorm)">
-                        <button type="button" class="delete-topic-button ml-auto">Delete Topic</button>
-                    </h3>
+                let topicsHtml = '';
+                if (note.topics && note.topics.length > 0) {
+                    note.topics.forEach((topic, index) => {
+                        let actionItemsHtml = '';
+                        if (topic.actionItems && topic.actionItems.length > 0) {
+                            actionItemsHtml = `
+                                <h4 class="text-sm font-medium text-gray-600 mt-2">Action Items:</h4>
+                                <ul class="list-disc list-inside ml-4 text-sm text-gray-700">
+                                    ${topic.actionItems.map(item => `<li>${item.description} (Responsible: ${item.responsible})</li>`).join('')}
+                                </ul>
+                            `;
+                        }
+                        topicsHtml += `
+                            <div class="bg-gray-50 p-3 rounded-md border border-gray-100 mt-3">
+                                <h3 class="text-md font-semibold text-gray-700 mb-1">Agenda Topic ${index + 1}: ${topic.topicTitle}</h3>
+                                <p class="text-gray-700 text-sm whitespace-pre-wrap">${topic.mainPoints}</p>
+                                ${actionItemsHtml}
+                            </div>
+                        `;
+                    });
+                } else {
+                    topicsHtml = '<p class="text-gray-500 text-sm italic">No topics recorded for this meeting.</p>';
+                }
 
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
-                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
+                noteElement.innerHTML = `
+                    <h3 class="text-lg font-semibold text-gray-800">${note.title}</h3>
+                    <div class="flex flex-col gap-2">
+                        ${topicsHtml}
                     </div>
+                    <p class="text-xs text-gray-500 mt-1">Created by: ${note.userId}</p>
+                    <button data-id="${note.id}" class="delete-note-btn absolute top-2 right-2 text-red-500 hover:text-red-700 focus:outline-none transition duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 11-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                `;
+                notesListDiv.appendChild(noteElement);
+            });
 
-                    <div class="mb-4">
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
-                        <ul class="action-items-list list-disc list-inside space-y-2">
-                            <li class="flex items-start">
-                                <span class="mr-2 text-indigo-600">&#8226;</span>
-                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
-                                <button type="button" class="delete-action-item-button">X</button>
-                            </li>
-                        </ul>
-                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                            + Add Action Item
-                        </button>
-                    </div>
+            // Add event listeners for delete buttons after notes are displayed
+            document.querySelectorAll('.delete-note-btn').forEach(button => {
+                button.addEventListener('click', handleDeleteNote);
+            });
+        }
 
-                    <div>
-                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
-                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
+        // Function to handle note deletion
+        async function handleDeleteNote(e) {
+            if (!isAuthReady) {
+                console.warn("Authentication not ready. Cannot delete note.");
+                return;
+            }
+
+            const noteId = e.currentTarget.dataset.id;
+            if (noteId) {
+                // Implement a custom modal for confirmation instead of alert/confirm
+                const isConfirmed = await showCustomConfirmation("Are you sure you want to delete this note?");
+                if (isConfirmed) {
+                    try {
+                        // Delete from the public collection
+                        const noteDocRef = doc(db, `artifacts/${appId}/public/data/notes`, noteId);
+                        await deleteDoc(noteDocRef);
+                        console.log("Note deleted successfully!");
+                    } catch (e) {
+                        console.error("Error deleting document: ", e);
+                    }
+                }
+            }
+        }
+
+        // Custom confirmation modal function
+        function showCustomConfirmation(message) {
+            return new Promise((resolve) => {
+                const modalOverlay = document.createElement('div');
+                modalOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                modalOverlay.innerHTML = `
+                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                        <p class="text-lg font-semibold mb-4">${message}</p>
+                        <div class="flex justify-center gap-4">
+                            <button id="confirm-yes" class="bg-red-500 text-white px-5 py-2 rounded-md hover:bg-red-600 transition duration-200">Yes</button>
+                            <button id="confirm-no" class="bg-gray-300 text-gray-800 px-5 py-2 rounded-md hover:bg-gray-400 transition duration-200">No</button>
+                        </div>
                     </div>
                 `;
-                meetingContent.appendChild(newTopicBlock);
+                document.body.appendChild(modalOverlay);
 
-                // Attach event listeners for the new "Add Action Item" button
-                newTopicBlock.querySelector('.add-action-item-button').addEventListener('click', (event) => addActionItem(event.target));
-                // Attach event listener for the new "Delete Topic" button
-                newTopicBlock.querySelector('.delete-topic-button').addEventListener('click', (event) => deleteTopic(event.target));
-                // Attach event listener for the delete action item button in the newly created topic
-                newTopicBlock.querySelector('.delete-action-item-button').addEventListener('click', (event) => deleteActionItem(event.target));
+                document.getElementById('confirm-yes').addEventListener('click', () => {
+                    modalOverlay.remove();
+                    resolve(true);
+                });
 
-
-                updateTopicNumbers(); // Re-number topics after adding
-                newTopicBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-
-            // Attach event listener to the "Add New Topic" button
-            addNewTopicButton.addEventListener('click', addNewTopic);
-
-            // Attach event listener to the "Generate PDF" button
-            generatePdfButton.addEventListener('click', generatePdf);
-
-            // Initial call to set up numbers and hide delete button for the first topic
-            updateTopicNumbers();
-        });
+                document.getElementById('confirm-no').addEventListener('click', () => {
+                    modalOverlay.remove();
+                    resolve(false);
+                });
+            });
+        }
     </script>
 </body>
 </html>
