@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Meeting Notes</title> <!-- Title in browser tab -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF CDN for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Style for the Add Topic button */
+        .add-topic-button {
+            background-color: #4f46e5; /* Indigo 600 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .add-topic-button:hover {
+            background-color: #4338ca; /* Indigo 700 */
+            transform: translateY(-1px);
+        }
+        .add-topic-button:active {
+            background-color: #3730a3; /* Indigo 800 */
+            transform: translateY(0);
+        }
+        /* Style for the Delete Topic button */
+        .delete-topic-button {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+            transition: background-color 0.2s ease-in-out;
+            margin-left: auto; /* Pushes button to the right */
+        }
+        .delete-topic-button:hover {
+            background-color: #dc2626; /* Red 600 */
+        }
+        .delete-topic-button:active {
+            background-color: #b91c1c; /* Red 700 */
+        }
+        /* Style for the Delete Action Item button */
+        .delete-action-item-button {
+            background-color: #ef4444; /* Red 500 */
+            color: white;
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 500; /* font-medium */
+            transition: background-color 0.2s ease-in-out;
+            margin-left: 0.5rem; /* Space from input field */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        .delete-action-item-button:hover {
+            background-color: #dc2626; /* Red 600 */
+        }
+        .delete-action-item-button:active {
+            background-color: #b91c1c; /* Red 700 */
+        }
+        /* Style for the Generate PDF button */
+        .generate-pdf-button {
+            background-color: #10b981; /* Emerald 500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .generate-pdf-button:hover {
+            background-color: #059669; /* Emerald 600 */
+            transform: translateY(-1px);
+        }
+        .generate-pdf-button:active {
+            background-color: #047857; /* Emerald 700 */
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800">
+    <div class="min-h-screen flex flex-col items-center p-4 sm:p-6 lg:p-8">
+        <!-- Main Container for the Meeting Notes -->
+        <div id="meeting-notes-container" class="bg-white shadow-xl rounded-lg p-6 sm:p-8 lg:p-10 w-full max-w-4xl">
+
+            <!-- Meeting Header -->
+            <header class="mb-8 pb-4 border-b border-gray-200">
+                <h1 class="text-3xl sm:text-4xl font-bold text-indigo-700 mb-2">Meeting Notes</h1>
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center text-gray-600 text-sm sm:text-base">
+                    <p class="mb-1 sm:mb-0"><strong>Date:</strong> <span id="meeting-date"></span></p>
+                    <p><strong>Time:</strong> <span id="meeting-time"></span></p>
+                </div>
+                <p class="text-gray-600 text-sm sm:text-base mt-2"><strong>Attendees:</strong> <input type="text" id="meeting-attendees" placeholder="Add attendees names (e.g., John Doe, Jane Smith)..." class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"></p>
+                <p class="text-gray-600 text-sm sm:text-base mt-2"><strong>Meeting Title:</strong> <input type="text" id="meeting-title-input" placeholder="Enter meeting title (e.g., Weekly Sync, Project Review)..." class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"></p>
+            </header>
+
+            <!-- Meeting Content Section -->
+            <section id="meeting-content">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Discussion Topics</h2>
+
+                <!-- Topic 1 Details - This will be cloned for new topics -->
+                <div class="topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
+                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
+                        <span class="topic-number mr-2">1.</span>
+                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., Project Alpha Update)">
+                        <!-- Delete button is hidden for the first topic -->
+                        <button type="button" class="delete-topic-button ml-auto hidden">Delete Topic</button>
+                    </h3>
+
+                    <!-- Points Discussed -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
+                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
+                    </div>
+
+                    <!-- Action Items -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
+                        <ul class="action-items-list list-disc list-inside space-y-2">
+                            <li class="flex items-start">
+                                <span class="mr-2 text-indigo-600">&#8226;</span>
+                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
+                                <button type="button" class="delete-action-item-button">X</button>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2 text-indigo-600">&#8226;</span>
+                                <textarea placeholder="Action: Describe another action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                                <input type="text" placeholder="Responsible: Jane Smith" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
+                                <button type="button" class="delete-action-item-button">X</button>
+                            </li>
+                            <!-- More action items can be added here or dynamically -->
+                        </ul>
+                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            + Add Action Item
+                        </button>
+                    </div>
+
+                    <!-- Comments -->
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
+                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
+                    </div>
+                </div>
+
+                <!-- Initial placeholder for more topics -->
+                <div class="topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
+                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
+                        <span class="topic-number mr-2">2.</span>
+                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., Q2 Performance Review)">
+                        <button type="button" class="delete-topic-button ml-auto">Delete Topic</button>
+                    </h3>
+
+                    <!-- Points Discussed -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
+                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
+                    </div>
+
+                    <!-- Action Items -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
+                        <ul class="action-items-list list-disc list-inside space-y-2">
+                            <li class="flex items-start">
+                                <span class="mr-2 text-indigo-600">&#8226;</span>
+                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
+                                <button type="button" class="delete-action-item-button">X</button>
+                            </li>
+                        </ul>
+                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            + Add Action Item
+                        </button>
+                    </div>
+
+                    <!-- Comments -->
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
+                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap justify-center gap-4 mt-8">
+                <button type="button" id="add-new-topic-button" class="add-topic-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Add New Topic
+                </button>
+                <button type="button" id="generate-pdf-button" class="generate-pdf-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 4a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H5zm0 2h10v6H5V6zm4 2a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    Generate PDF
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Ensure jsPDF is loaded
+        const { jsPDF } = window.jspdf;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set current date and time dynamically
+            const now = new Date();
+            const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
+            const optionsTime = { hour: 'numeric', minute: 'numeric', hour12: true };
+            document.getElementById('meeting-date').textContent = now.toLocaleDateString('en-US', optionsDate);
+            document.getElementById('meeting-time').textContent = now.toLocaleTimeString('en-US', optionsTime);
+
+            const meetingNotesContainer = document.getElementById('meeting-notes-container');
+            const meetingContent = document.getElementById('meeting-content');
+            const addNewTopicButton = document.getElementById('add-new-topic-button');
+            const generatePdfButton = document.getElementById('generate-pdf-button');
+
+            // Function to update topic numbers
+            function updateTopicNumbers() {
+                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
+                topicBlocks.forEach((block, index) => {
+                    block.querySelector('.topic-number').textContent = `${index + 1}.`;
+                    // Hide delete button for the first topic, show for others
+                    const deleteButton = block.querySelector('.delete-topic-button');
+                    if (deleteButton) {
+                        if (index === 0) {
+                            deleteButton.classList.add('hidden');
+                        } else {
+                            deleteButton.classList.remove('hidden');
+                        }
+                    }
+                });
+            }
+
+            // Function to delete an action item
+            function deleteActionItem(button) {
+                const actionItemLi = button.closest('li');
+                actionItemLi.remove();
+            }
+
+            // Function to add a new action item to a specific topic
+            function addActionItem(button) {
+                const ul = button.previousElementSibling; // Get the <ul> element before the button
+                const newActionItem = document.createElement('li');
+                newActionItem.className = 'flex items-start';
+                newActionItem.innerHTML = `
+                    <span class="mr-2 text-indigo-600">&#8226;</span>
+                    <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                    <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
+                    <button type="button" class="delete-action-item-button">X</button>
+                `;
+                ul.appendChild(newActionItem);
+                // Attach event listener to the new delete action item button
+                newActionItem.querySelector('.delete-action-item-button').addEventListener('click', (event) => deleteActionItem(event.target));
+            }
+
+            // Function to delete a topic block
+            function deleteTopic(button) {
+                const topicBlock = button.closest('.topic-block');
+                // Ensure we don't delete the last remaining topic
+                if (meetingContent.querySelectorAll('.topic-block').length > 1) {
+                    topicBlock.remove();
+                    updateTopicNumbers(); // Re-number topics after deletion
+                } else {
+                    // Optionally, provide feedback to the user that the first topic cannot be deleted
+                    console.log("Cannot delete the last remaining topic.");
+                    // You could add a simple visual cue here if needed, e.g., a temporary border color change
+                }
+            }
+
+            // Function to generate PDF with extracted text
+            async function generatePdf() {
+                const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size
+                const margin = 20; // Page margin
+                let y = margin; // Current Y position on the PDF
+
+                // Function to add text with line wrapping
+                const addText = (text, x, yPos, maxWidth, fontSize, fontStyle = 'normal') => {
+                    doc.setFont('helvetica', fontStyle);
+                    doc.setFontSize(fontSize);
+                    const splitText = doc.splitTextToSize(text, maxWidth);
+                    doc.text(splitText, x, yPos);
+                    return yPos + (splitText.length * fontSize * 0.35); // Adjust line height multiplier as needed
+                };
+
+                // Helper to check for new page
+                const checkNewPage = (requiredHeight) => {
+                    if (y + requiredHeight > doc.internal.pageSize.height - margin) {
+                        doc.addPage();
+                        y = margin;
+                    }
+                };
+
+                // --- Extract Meeting Details ---
+                const meetingTitle = document.getElementById('meeting-title-input').value.trim();
+                const meetingDate = document.getElementById('meeting-date').textContent;
+                const meetingTime = document.getElementById('meeting-time').textContent;
+                const meetingAttendees = document.getElementById('meeting-attendees').value.trim();
+
+                // --- Add Meeting Header to PDF ---
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(24);
+                doc.text('Meeting Minutes', margin, y);
+                y += 15;
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(12);
+                y = addText(`Title: ${meetingTitle || 'N/A'}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
+                y = addText(`Date: ${meetingDate}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
+                y = addText(`Time: ${meetingTime}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
+                y = addText(`Attendees: ${meetingAttendees || 'N/A'}`, margin, y, doc.internal.pageSize.width - 2 * margin, 12);
+                y += 15; // Space after header
+
+                // --- Add Discussion Topics ---
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(16);
+                doc.text('Discussion Topics', margin, y);
+                y += 10;
+
+                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
+                topicBlocks.forEach((block, index) => {
+                    checkNewPage(50); // Estimate space for a new topic heading and some content
+
+                    const topicTitle = block.querySelector('.topic-title-input').value.trim();
+                    const pointsDiscussed = block.querySelector('.points-discussed-textarea').value.trim();
+                    const actionItems = [];
+                    block.querySelectorAll('.action-items-list li').forEach(li => {
+                        const action = li.querySelector('.action-item-text').value.trim();
+                        const responsible = li.querySelector('.action-item-responsible').value.trim();
+                        if (action || responsible) {
+                            actionItems.push({ action, responsible });
+                        }
+                    });
+                    const comments = block.querySelector('.comments-textarea').value.trim();
+
+                    // Topic Title
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    y = addText(`${index + 1}. ${topicTitle || 'Untitled Topic'}`, margin + 5, y, doc.internal.pageSize.width - 2 * margin - 5, 14);
+                    y += 5; // Space after topic title
+
+                    // Points Discussed
+                    if (pointsDiscussed) {
+                        checkNewPage(30); // Estimate space for heading and content
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(12);
+                        doc.text('Points Discussed:', margin + 10, y);
+                        y += 5;
+                        y = addText(pointsDiscussed, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
+                        y += 5;
+                    }
+
+                    // Action Items
+                    if (actionItems.length > 0) {
+                        checkNewPage(20 + (actionItems.length * 10)); // Estimate space for heading and items
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(12);
+                        doc.text('Action Items:', margin + 10, y);
+                        y += 5;
+                        actionItems.forEach(item => {
+                            const actionText = `- ${item.action || 'N/A'}`;
+                            const responsibleText = item.responsible ? ` (Responsible: ${item.responsible})` : '';
+                            y = addText(actionText + responsibleText, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
+                            y += 5;
+                        });
+                        y += 5;
+                    }
+
+                    // Comments
+                    if (comments) {
+                        checkNewPage(30); // Estimate space for heading and content
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(12);
+                        doc.text('Comments:', margin + 10, y);
+                        y += 5;
+                        y = addText(comments, margin + 15, y, doc.internal.pageSize.width - 2 * margin - 15, 11);
+                        y += 5;
+                    }
+                    y += 10; // Space after each topic
+                });
+
+                const fileName = (meetingTitle.trim() !== '')
+                    ? `${meetingTitle.trim().replace(/[^a-z0-9]/gi, '_')}_Meeting_Minutes.pdf`
+                    : 'Meeting_Minutes.pdf';
+
+                doc.save(fileName);
+            }
+
+
+            // Attach event listeners to initial "Add Action Item" buttons
+            document.querySelectorAll('.add-action-item-button').forEach(button => {
+                button.addEventListener('click', () => addActionItem(button));
+            });
+
+            // Attach event listeners to initial "Delete Topic" buttons (only for those that are not hidden)
+            document.querySelectorAll('.delete-topic-button:not(.hidden)').forEach(button => {
+                button.addEventListener('click', () => deleteTopic(button));
+            });
+
+            // Attach event listeners to existing "Delete Action Item" buttons
+            document.querySelectorAll('.delete-action-item-button').forEach(button => {
+                button.addEventListener('click', (event) => deleteActionItem(event.target));
+            });
+
+            // Function to add a new topic block
+            function addNewTopic() {
+                // Get the last topic number
+                const topicBlocks = meetingContent.querySelectorAll('.topic-block');
+                const lastTopicNumber = topicBlocks.length > 0
+                    ? parseInt(topicBlocks[topicBlocks.length - 1].querySelector('.topic-number').textContent.split('.')[0])
+                    : 0;
+                const newTopicNumber = lastTopicNumber + 1;
+
+                const newTopicBlock = document.createElement('div');
+                newTopicBlock.className = 'topic-block bg-indigo-50 p-6 rounded-lg shadow-md mb-6 border border-indigo-200';
+                newTopicBlock.innerHTML = `
+                    <h3 class="text-xl font-semibold text-indigo-800 mb-3 flex items-center">
+                        <span class="topic-number mr-2">${newTopicNumber}.</span>
+                        <input type="text" class="topic-title-input flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 bg-white" placeholder="Topic Title Here (e.g., New Initiative Brainstorm)">
+                        <button type="button" class="delete-topic-button ml-auto">Delete Topic</button>
+                    </h3>
+
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Points Discussed:</h4>
+                        <textarea class="points-discussed-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Summarize key discussion points for this topic here..." rows="4"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Action Items:</h4>
+                        <ul class="action-items-list list-disc list-inside space-y-2">
+                            <li class="flex items-start">
+                                <span class="mr-2 text-indigo-600">&#8226;</span>
+                                <textarea placeholder="Action: Describe the action item" rows="1" class="action-item-text flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
+                                <input type="text" placeholder="Responsible: Name/Team" class="action-item-responsible ml-2 p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 w-1/3 sm:w-1/4">
+                                <button type="button" class="delete-action-item-button">X</button>
+                            </li>
+                        </ul>
+                        <button type="button" class="add-action-item-button mt-3 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            + Add Action Item
+                        </button>
+                    </div>
+
+                    <div>
+                        <h4 class="text-lg font-medium text-gray-700 mb-2">Comments:</h4>
+                        <textarea class="comments-textarea w-full p-3 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" placeholder="Add any additional comments or notes for this topic..." rows="3"></textarea>
+                    </div>
+                `;
+                meetingContent.appendChild(newTopicBlock);
+
+                // Attach event listeners for the new "Add Action Item" button
+                newTopicBlock.querySelector('.add-action-item-button').addEventListener('click', (event) => addActionItem(event.target));
+                // Attach event listener for the new "Delete Topic" button
+                newTopicBlock.querySelector('.delete-topic-button').addEventListener('click', (event) => deleteTopic(event.target));
+                // Attach event listener for the delete action item button in the newly created topic
+                newTopicBlock.querySelector('.delete-action-item-button').addEventListener('click', (event) => deleteActionItem(event.target));
+
+
+                updateTopicNumbers(); // Re-number topics after adding
+                newTopicBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Attach event listener to the "Add New Topic" button
+            addNewTopicButton.addEventListener('click', addNewTopic);
+
+            // Attach event listener to the "Generate PDF" button
+            generatePdfButton.addEventListener('click', generatePdf);
+
+            // Initial call to set up numbers and hide delete button for the first topic
+            updateTopicNumbers();
+        });
+    </script>
+</body>
+</html>
